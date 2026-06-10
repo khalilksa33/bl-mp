@@ -1,0 +1,63 @@
+# .github/workflows/deploy.yml
+name: CI/CD Production Auto-Deployment
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-push:
+    name: Build & Push Microservices
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # Login to secure container registry (e.g. GitHub Packages or Docker Hub)
+      - name: Log in to Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Build & Push Frontend Image
+      - name: Build and Push Frontend
+        uses: docker/build-push-action@v5
+        with:
+          context: ./frontend
+          file: ./frontend/Dockerfile
+          push: true
+          tags: ghcr.io/${{ github.repository }}/marketplace-frontend:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # Build & Push Backend Image
+      - name: Build and Push Backend
+        uses: docker/build-push-action@v5
+        with:
+          context: ./backend
+          file: ./backend/Dockerfile
+          push: true
+          tags: ghcr.io/${{ github.repository }}/marketplace-backend:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  deploy-to-host-b:
+    name: Deploy to Host B (192.168.8.59)
+    needs: build-and-push
+    # Utilizing a self-hosted runner placed inside the private subnet (recommended for private IPs)
+    # Alternatively, you can use ubuntu-latest with a VPN/Cloudflare Tunnel step
+    runs-on: self-hosted
+    steps:
+      - name: Checkout Deployment Infrastructure
+        uses: actions/checkout@v4
+
+      - name: Run Ansible Deploy Playbook
+        run: |
+          ansible-playbook -i infrastructure/deploy/hosts.ini infrastructure/deploy/playbook.yml \
+            --extra-vars "registry_username=${{ github.actor }} registry_password=${{ secrets.GITHUB_TOKEN }}"

@@ -1,0 +1,61 @@
+---
+# infrastructure/deploy/playbook.yml
+- name: Deploy Marketplace Stack to Host B
+  hosts: production
+  become: yes
+  vars:
+    project_root: /opt/marketplace
+    registry: ghcr.io
+
+  tasks:
+    - name: Ensure project directory structure exists
+      file:
+        path: "{{ item }}"
+        state: directory
+        owner: deploy
+        group: deploy
+        mode: '0755'
+      loop:
+        - "{{ project_root }}"
+        - "{{ project_root }}/nginx"
+        - "{{ project_root }}/database"
+
+    - name: Copy docker-compose.yml configuration to host
+      copy:
+        src: ../docker-compose.prod.yml
+        dest: "{{ project_root }}/docker-compose.yml"
+        owner: deploy
+        group: deploy
+        mode: '0644'
+
+    - name: Log in to GitHub Container Registry
+      docker_login:
+        registry_url: "{{ registry }}"
+        username: "{{ registry_username }}"
+        password: "{{ registry_password }}"
+
+    - name: Pull latest service images
+      docker_image:
+        name: "{{ item }}"
+        source: pull
+        force_source: yes
+      loop:
+        - ghcr.io/khalilksa33/bt_etmd_tndrs/marketplace-frontend:latest
+        - ghcr.io/khalilksa33/bt_etmd_tndrs/marketplace-backend:latest
+
+    - name: Bring up container stack
+      community.docker.docker_compose_v2:
+        project_src: "{{ project_root }}"
+        state: present
+        pull: always
+        recreate: always
+
+    - name: Execute database migrations inside running backend container
+      command: docker compose exec -T backend php bin/console db:migrate --force
+      args:
+        chdir: "{{ project_root }}"
+      register: migration_output
+
+    - name: Show migration log output
+      debug:
+        var: migration_output.stdout_lines

@@ -1,0 +1,40 @@
+# infrastructure/docker-compose.prod.yml
+version: '3.8'
+
+services:
+  frontend:
+    image: ghcr.io/khalilksa33/bt_etmd_tndrs/marketplace-frontend:latest
+    restart: always
+    environment:
+      - NODE_ENV=production
+      - NEXT_PUBLIC_API_URL=http://backend:8080
+    expose:
+      - "3000"
+
+  backend:
+    image: ghcr.io/khalilksa33/bt_etmd_tndrs/marketplace-backend:latest
+    restart: always
+    environment:
+      - APP_ENV=prod
+      - DB_HOST=postgres-prod.internal
+      - DB_PORT=5432
+      - DB_NAME=marketplace
+      - DB_USER=postgres
+      - DB_PASSWORD_FILE=/run/secrets/db_password
+      - REDIS_URL=redis://redis-cluster.internal:6379/0
+    expose:
+      - "8080"
+    secrets:
+      - db_password
+
+  # cloudflared tunnel client running locally on Host B for zero-ingress security
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    restart: always
+    command: tunnel --no-autoupdate run
+    environment:
+      - TUNNEL_TOKEN=${CLOUDFLARE_TUNNEL_TOKEN}
+
+secrets:
+  db_password:
+    file: ./secrets/db_password.txt

@@ -1,0 +1,88 @@
+/* frontend/src/app/global.css */
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap');
+
+:root {
+  /* Design Tokens - Premium Dark Palette */
+  --bg-primary: hsl(222, 47%, 4%);
+  --bg-secondary: hsl(222, 40%, 7%);
+  --bg-card: hsl(222, 35%, 11%);
+  
+  --border-color: hsl(217, 32%, 18%);
+  
+  --text-primary: hsl(210, 40%, 98%);
+  --text-secondary: hsl(215, 20%, 70%);
+  --text-muted: hsl(215, 16%, 47%);
+  
+  --primary: hsl(250, 89%, 65%);
+  --primary-hover: hsl(250, 95%, 72%);
+  --accent: hsl(325, 90%, 60%);
+  --success: hsl(142, 70%, 45%);
+  
+  --transition-smooth: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  --font-sans: 'Inter', system-ui, sans-serif;
+  --font-display: 'Outfit', sans-serif;
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  margin: 0;
+  padding: 0;
+}
+
+/* CSS Logical Properties for seamless LTR/RTL Grid and Box-Model alignment */
+.card-container {
+  display: flex;
+  flex-direction: column;
+  padding-block: 2rem;
+  padding-inline: 1.5rem; /* Automatically translates to padding-left/right based on DOM dir */
+  margin-block-end: 3rem;
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  transition: transform var(--transition-smooth), border-color var(--transition-smooth);
+}
+
+.card-container:hover {
+  transform: translateY(-4px);
+  border-color: var(--primary);
+}
+
+/* Logical margins for layout lists and nested elements */
+.menu-item {
+  display: flex;
+  align-items: center;
+  margin-inline-end: 2rem; /* Handles right margin in LTR and left margin in RTL */
+  padding-inline-start: 0.5rem;
+}
+
+.header-logo {
+  margin-inline-end: auto; /* Pushes navigation to the opposite side dynamically */
+}
+
+/* Interactive elements featuring micro-animations */
+.button-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding-block: 0.75rem;
+  padding-inline: 1.5rem;
+  border-radius: 8px;
+  background: linear-gradient(135deg, var(--primary), var(--accent));
+  color: var(--text-primary);
+  font-family: var(--font-display);
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  transition: opacity var(--transition-smooth), transform var(--transition-smooth);
+}
+
+.button-primary:hover {
+  opacity: 0.95;
+  transform: scale(1.02);
+}
+
+.button-primary:active {
+  transform: scale(0.98);
+}
