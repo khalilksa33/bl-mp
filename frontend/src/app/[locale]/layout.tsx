@@ -21,8 +21,9 @@ export function getDirection(locale: string): 'rtl' | 'ltr' {
   return rtlLocales.includes(locale.toLowerCase()) ? 'rtl' : 'ltr';
 }
 
-export async function generateMetadata({ params }: { params: { locale: string } }): Promise<Metadata> {
-  const dir = getDirection(params.locale);
+export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
+  const resolvedParams = await params;
+  const dir = getDirection(resolvedParams.locale);
   return {
     title: {
       template: '%s | Global Multi-Tenant Marketplace',
@@ -35,17 +36,18 @@ export async function generateMetadata({ params }: { params: { locale: string } 
   };
 }
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
   params,
 }: {
   children: React.ReactNode;
-  params: { locale: string };
+  params: Promise<{ locale: string }>;
 }) {
-  const dir = getDirection(params.locale);
+  const resolvedParams = await params;
+  const dir = getDirection(resolvedParams.locale);
 
   return (
-    <html lang={params.locale} dir={dir} className={`${inter.variable} ${outfit.variable} scroll-smooth`}>
+    <html lang={resolvedParams.locale} dir={dir} className={`${inter.variable} ${outfit.variable} scroll-smooth`}>
       <head>
         {/* Dynamic SEO Tagging */}
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
