@@ -2,6 +2,8 @@
 
 import React, { useState, useMemo } from 'react';
 
+export const runtime = 'edge';
+
 // Mock data representing tenants and their products
 interface Product {
   id: string;

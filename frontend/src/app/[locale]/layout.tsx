@@ -4,6 +4,8 @@ import { Metadata } from 'next';
 import { Inter, Outfit } from 'next/font/google';
 import '../global.css';
 
+export const runtime = 'edge';
+
 const inter = Inter({
   subsets: ['latin'],
   variable: '--font-sans',
