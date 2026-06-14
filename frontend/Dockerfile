@@ -6,10 +6,9 @@ FROM node:18-alpine AS base
 FROM base AS builder
 WORKDIR /app
 
-# In a full project, package.json would be copied here
-# For now, we will create a minimal package.json so the build doesn't fail
-RUN echo '{"name": "marketplace-frontend", "version": "1.0.0", "scripts": {"build": "next build", "start": "next start"}}' > package.json
-RUN npm install next react react-dom typescript @types/react @types/node --save-dev
+# Copy dependency files
+COPY package.json ./
+RUN npm install
 
 # Copy application files
 COPY src ./src

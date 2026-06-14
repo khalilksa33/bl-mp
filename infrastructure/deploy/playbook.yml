@@ -40,7 +40,6 @@
         source: pull
         force_source: yes
       loop:
-        - ghcr.io/khalilksa33/bt_etmd_tndrs/marketplace-frontend:latest
         - ghcr.io/khalilksa33/bt_etmd_tndrs/marketplace-backend:latest
 
     - name: Bring up container stack
