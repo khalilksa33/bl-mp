@@ -16,7 +16,7 @@ const outfit = Outfit({
 
 // Mock/Simple function to determine layout direction based on locale
 // In a full implementation, this maps key locales to RTL scripts (e.g., ar, he, fa)
-export function getDirection(locale: string): 'rtl' | 'ltr' {
+function getDirection(locale: string): 'rtl' | 'ltr' {
   const rtlLocales = ['ar', 'he', 'fa', 'ur'];
   return rtlLocales.includes(locale.toLowerCase()) ? 'rtl' : 'ltr';
 }
