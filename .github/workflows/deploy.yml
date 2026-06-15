@@ -92,12 +92,12 @@ jobs:
           NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL }}
 
       - name: Deploy to Hostinger via SFTP
-        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        uses: wlixcc/SFTP-Deploy-Action@v1.2.4
         with:
-          server: ${{ secrets.HOSTINGER_FTP_SERVER }}
           username: ${{ secrets.HOSTINGER_FTP_USERNAME }}
-          password: ${{ secrets.HOSTINGER_FTP_PASSWORD }}
+          server: ${{ secrets.HOSTINGER_FTP_SERVER }}
           port: ${{ secrets.HOSTINGER_SFTP_PORT || '65002' }}
-          protocol: sftp
-          local-dir: ./frontend/out/
-          server-dir: ./public_html/
+          password: ${{ secrets.HOSTINGER_FTP_PASSWORD }}
+          local_path: './frontend/out'
+          remote_path: './public_html'
+          sftp_only: true
