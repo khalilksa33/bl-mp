@@ -1,0 +1,33 @@
+# Dependencies
+node_modules/
+/backend/vendor/
+
+# Next.js Build Outputs
+.next/
+/frontend/out/
+.vercel/
+
+# Logs and Caches
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+.eslintcache
+
+# Local Environment Variables and Secrets
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env.wsl
+secrets/
+
+# IDEs
+.idea/
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
