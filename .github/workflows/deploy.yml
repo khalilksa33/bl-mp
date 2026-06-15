@@ -69,6 +69,37 @@ jobs:
           command: pages deploy ./frontend/.vercel/output --project-name=marketplace-frontend --branch=main
           workingDirectory: ./frontend
 
+  deploy-frontend-hostinger:
+    name: Deploy Frontend to Hostinger Shared Hosting
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
+      - name: Install dependencies
+        run: npm install
+        working-directory: ./frontend
+
+      - name: Build Hostinger Project (Static Export)
+        run: npm run build:hostinger
+        working-directory: ./frontend
+        env:
+          NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL }}
+
+      - name: Deploy to Hostinger via FTP
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.HOSTINGER_FTP_SERVER }}
+          username: ${{ secrets.HOSTINGER_FTP_USERNAME }}
+          password: ${{ secrets.HOSTINGER_FTP_PASSWORD }}
+          local-dir: ./frontend/out/
+          server-dir: ./public_html/
+
   deploy-backend-to-host-b:
     name: Deploy Backend to Host B (192.168.8.59)
     needs: build-and-push-backend

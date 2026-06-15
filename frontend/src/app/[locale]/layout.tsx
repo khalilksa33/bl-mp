@@ -4,7 +4,9 @@ import { Metadata } from 'next';
 import { Inter, Outfit } from 'next/font/google';
 import '../global.css';
 
-export const runtime = 'edge';
+export async function generateStaticParams() {
+  return [{ locale: 'en' }];
+}
 
 const inter = Inter({
   subsets: ['latin'],

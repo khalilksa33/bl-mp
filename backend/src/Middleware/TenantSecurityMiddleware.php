@@ -8,7 +8,7 @@ use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Server\MiddlewareInterface;
 use Psr\Http\Server\RequestHandlerInterface;
-use Yiisoft\Response\ResponseFactoryInterface;
+use Psr\Http\Message\ResponseFactoryInterface;
 use PDO;
 use RuntimeException;
 use InvalidArgumentException;
@@ -65,8 +65,8 @@ final class TenantSecurityMiddleware implements MiddlewareInterface
                 $this->pdo->beginTransaction();
             }
 
-            // Bind app.current_tenant_id variable safely using query parameter binding
-            $stmt = $this->pdo->prepare('SET LOCAL app.current_tenant_id = :tenant_id');
+            // Bind app.current_tenant_id variable safely using SELECT set_config
+            $stmt = $this->pdo->prepare("SELECT set_config('app.current_tenant_id', :tenant_id, true)");
             $stmt->execute(['tenant_id' => $tenantId]);
 
             // 3. Inject Tenant context into request attributes for downstream domain service layers

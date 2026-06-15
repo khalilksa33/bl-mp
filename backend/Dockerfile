@@ -1,32 +1,32 @@
 # backend/Dockerfile
-FROM php:8.3-fpm-alpine
+FROM php:8.3-alpine
 
-# Install system dependencies and PHP extensions
+# Install system dependencies and PostgreSQL PHP extension
 RUN apk add --no-cache \
     postgresql-dev \
     git \
     unzip \
     bash \
-    && docker-php-ext-install pdo pdo_pgsql opcache
-
-# Set recommended PHP configuration settings (OPcache, memory limit, etc.)
-RUN { \
-        echo 'opcache.memory_consumption=128'; \
-        echo 'opcache.interned_strings_buffer=8'; \
-        echo 'opcache.max_accelerated_files=4000'; \
-        echo 'opcache.revalidate_freq=2'; \
-        echo 'opcache.fast_shutdown=1'; \
-    } > /usr/local/etc/php/conf.d/opcache-recommended.ini
+    && docker-php-ext-install pdo pdo_pgsql
 
 # Get Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
 WORKDIR /var/www/html
 
+# Copy composer config and run install
+COPY composer.json ./
+RUN composer install --no-interaction --no-plugins --no-scripts --no-dev --prefer-dist
+
 # Copy project files
 COPY src/ ./src/
+COPY public/ ./public/
 
-# Expose PHP-FPM port
-EXPOSE 9000
+# Optimize autoloader
+RUN composer dump-autoload --optimize --no-dev
 
-CMD ["php-fpm"]
+# Expose HTTP port
+EXPOSE 8080
+
+# Run PHP built-in web server serving public folder
+CMD ["php", "-S", "0.0.0.0:8080", "-t", "public"]

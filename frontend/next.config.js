@@ -1,8 +1,13 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  // Cloudflare Pages requires output to be compatible with Edge Runtime
-  // When using next-on-pages, it automatically configures target environments.
+  // Conditionally configure static export for Hostinger shared webhosting
+  ...(process.env.BUILD_TARGET === 'hostinger' ? {
+    output: 'export',
+    images: {
+      unoptimized: true,
+    },
+  } : {}),
 };
 
 module.exports = nextConfig;
