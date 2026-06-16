@@ -1,5 +1,5 @@
 # .github/workflows/deploy.yml
-name: CI/CD Production Auto-Deployment
+name: CI/CD Production GCP Auto-Deployment
 
 on:
   push:
@@ -8,63 +8,60 @@ on:
 
 permissions:
   contents: read
-  packages: write
+  id-token: write
 
 jobs:
-  build-and-push-backend:
-    name: Build & Push Backend Microservice
+  deploy-to-gcp:
+    name: Build, Push, and Deploy to GCP Cloud Run
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Log in to Registry
-        uses: docker/login-action@v3
+      # Authenticate with Google Cloud
+      - name: Authenticate with GCP
+        uses: google-github-actions/auth@v2
         with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
 
-      # Build & Push Backend Image
+      # Setup gcloud CLI
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      # Configure Docker for Artifact Registry/GCR
+      - name: Configure Docker
+        run: |
+          gcloud auth configure-docker gcr.io --quiet
+
+      # Build and push Backend to GCR
       - name: Build and Push Backend
-        uses: docker/build-push-action@v5
+        run: |
+          docker build -t gcr.io/${{ secrets.GCP_PROJECT_ID }}/marketplace-backend:latest ./backend
+          docker push gcr.io/${{ secrets.GCP_PROJECT_ID }}/marketplace-backend:latest
+
+      # Deploy Backend to Cloud Run
+      - name: Deploy Backend to Cloud Run
+        id: deploy-backend
+        uses: google-github-actions/deploy-cloudrun@v2
         with:
-          context: ./backend
-          file: ./backend/Dockerfile
-          push: true
-          tags: ghcr.io/${{ github.repository }}/marketplace-backend:latest
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          service: marketplace-backend
+          image: gcr.io/${{ secrets.GCP_PROJECT_ID }}/marketplace-backend:latest
+          region: us-central1
+          flags: --allow-unauthenticated
 
-  deploy-frontend-cloudflare:
-    name: Deploy Frontend to Cloudflare Pages
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
+      # Build and push Frontend to GCR (injecting deployed Backend URL)
+      - name: Build and Push Frontend
+        run: |
+          docker build \
+            --build-arg NEXT_PUBLIC_API_URL=${{ steps.deploy-backend.outputs.url }} \
+            -t gcr.io/${{ secrets.GCP_PROJECT_ID }}/marketplace-frontend:latest ./frontend
+          docker push gcr.io/${{ secrets.GCP_PROJECT_ID }}/marketplace-frontend:latest
 
-      - name: Install Node.js
-        uses: actions/setup-node@v4
+      # Deploy Frontend to Cloud Run
+      - name: Deploy Frontend to Cloud Run
+        uses: google-github-actions/deploy-cloudrun@v2
         with:
-          node-version: 18
-
-      - name: Install dependencies
-        run: npm install
-        working-directory: ./frontend
-
-      - name: Build Pages Project
-        run: npm run pages:build
-        working-directory: ./frontend
-        env:
-          NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL }}
-
-      - name: Deploy to Cloudflare Pages
-        run: npx wrangler pages deploy .vercel/output --project-name=bl-mp --branch=main
-        working-directory: ./frontend
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          WRANGLER_LOG: debug
+          service: marketplace-frontend
+          image: gcr.io/${{ secrets.GCP_PROJECT_ID }}/marketplace-frontend:latest
+          region: us-central1
+          flags: --allow-unauthenticated
