@@ -62,12 +62,12 @@ jobs:
           NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL }}
 
       - name: Deploy to Cloudflare Pages
-        uses: cloudflare/wrangler-action@v3
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: pages deploy .vercel/output --project-name=bl-mp --branch=main
-          workingDirectory: ./frontend
+        run: npx wrangler pages deploy .vercel/output --project-name=bl-mp --branch=main
+        working-directory: ./frontend
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          WRANGLER_LOG: debug
 
   deploy-frontend-hostinger:
     name: Deploy Frontend to Hostinger Shared Hosting
