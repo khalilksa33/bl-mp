@@ -68,36 +68,3 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           WRANGLER_LOG: debug
-
-  deploy-frontend-hostinger:
-    name: Deploy Frontend to Hostinger Shared Hosting
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
-
-      - name: Install Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 18
-
-      - name: Install dependencies
-        run: npm install
-        working-directory: ./frontend
-
-      - name: Build Hostinger Project (Static Export)
-        run: npm run build:hostinger
-        working-directory: ./frontend
-        env:
-          NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL }}
-
-      - name: Deploy to Hostinger via SFTP
-        uses: wlixcc/SFTP-Deploy-Action@v1.2.4
-        with:
-          username: ${{ secrets.HOSTINGER_FTP_USERNAME }}
-          server: ${{ secrets.HOSTINGER_FTP_SERVER }}
-          port: ${{ secrets.HOSTINGER_SFTP_PORT || '65002' }}
-          password: ${{ secrets.HOSTINGER_FTP_PASSWORD }}
-          local_path: './frontend/out'
-          remote_path: './public_html'
-          sftp_only: true
