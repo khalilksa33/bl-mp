@@ -1,0 +1,8 @@
+runConfig:
+    minInstances: 0
+    maxInstances: 2
+env:
+  - variable: NEXT_PUBLIC_FIREBASE_API_KEY
+    value: "your_api_key_here"
+  - variable: NEXT_PUBLIC_FIREBASE_PROJECT_ID
+    value: "my-test-project-505"

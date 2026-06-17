@@ -8,6 +8,8 @@ use Nyholm\Psr7\Factory\Psr17Factory;
 use Nyholm\Psr7Server\ServerRequestCreator;
 use App\Middleware\TenantSecurityMiddleware;
 use App\Repository\OrderRepository;
+use App\Repository\ProductRepository;
+use App\Repository\TenantRepository;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Server\RequestHandlerInterface;
@@ -95,7 +97,34 @@ class MainRequestHandler implements RequestHandlerInterface
             $response->getBody()->write(json_encode([
                 'tenant_id' => $request->getAttribute('tenant_id'),
                 'orders' => $data
-            ], JSON_THROW_ON_ERROR));
+              ], JSON_THROW_ON_ERROR));
+
+            return $response;
+        }
+
+        if ($path === '/api/products') {
+            $queryParams = $request->getQueryParams();
+            $tenantId = $queryParams['tenant_id'] ?? null;
+
+            $repo = new ProductRepository($this->pdo);
+            $products = $repo->findAll($tenantId);
+            $data = array_map(fn($product) => $product->toArray(), $products);
+
+            $response->getBody()->write(json_encode([
+                'products' => $data
+              ], JSON_THROW_ON_ERROR));
+
+            return $response;
+        }
+
+        if ($path === '/api/tenants') {
+            $repo = new TenantRepository($this->pdo);
+            $tenants = $repo->findAll();
+            $data = array_map(fn($tenant) => $tenant->toArray(), $tenants);
+
+            $response->getBody()->write(json_encode([
+                'tenants' => $data
+              ], JSON_THROW_ON_ERROR));
 
             return $response;
         }
@@ -128,8 +157,11 @@ $responseFactoryWrapper = new SimpleResponseFactory($psr17Factory);
 $middleware = new TenantSecurityMiddleware($pdo, $responseFactoryWrapper);
 $handler = new MainRequestHandler($pdo, $psr17Factory);
 
-// If the path is /api/health, we bypass the TenantSecurityMiddleware for health checks
-if ($request->getUri()->getPath() === '/api/health' || $request->getMethod() === 'OPTIONS') {
+// Determine if endpoint requires tenant isolation context (like orders)
+$path = $request->getUri()->getPath();
+$isPublicRoute = $path === '/api/health' || $path === '/api/products' || $path === '/api/tenants' || $request->getMethod() === 'OPTIONS';
+
+if ($isPublicRoute) {
     $response = $handler->handle($request);
 } else {
     $response = $middleware->process($request, $handler);

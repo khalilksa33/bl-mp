@@ -26,8 +26,14 @@ secrets/
 # IDEs
 .idea/
 .vscode/
+# IDEs
 *.suo
 *.ntvs*
 *.njsproj
 *.sln
 *.sw?
+
+# Antigravity/Firebase Local Temporary Files
+.agents/
+.firebase/
+

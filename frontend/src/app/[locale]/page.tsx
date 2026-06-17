@@ -1,8 +1,10 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 
-// Mock data representing tenants and their products
+// API configuration
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+
 interface Product {
   id: string;
   name: string;
@@ -23,27 +25,16 @@ interface Tenant {
   bannerGradient: string;
 }
 
-const MOCK_TENANTS: Tenant[] = [
-  { id: '1', name: 'Apex Tech Labs', logo: '⚡', category: 'Electronics', rating: 4.9, bannerGradient: 'from-blue-600 to-indigo-900' },
-  { id: '2', name: 'Luxe Attire', logo: '👔', category: 'Fashion', rating: 4.8, bannerGradient: 'from-purple-600 to-pink-900' },
-  { id: '3', name: 'Eco Living Co.', logo: '🌱', category: 'Lifestyle', rating: 4.7, bannerGradient: 'from-emerald-600 to-teal-900' },
-  { id: '4', name: 'Horizon Foods', logo: '🍎', category: 'Groceries', rating: 4.9, bannerGradient: 'from-amber-500 to-orange-850' }
-];
-
-const MOCK_PRODUCTS: Product[] = [
-  { id: 'p1', name: 'Quantum Pro Headset', price: 299, category: 'Electronics', tenantId: '1', image: '🎧', rating: 4.9, featured: true },
-  { id: 'p2', name: 'Nano X Smartwatch', price: 199, category: 'Electronics', tenantId: '1', image: '⌚', rating: 4.7, featured: true },
-  { id: 'p3', name: 'HoloDisplay 4K Monitor', price: 699, category: 'Electronics', tenantId: '1', image: '🖥️', rating: 4.8, featured: false },
-  { id: 'p4', name: 'Minimalist Leather Jacket', price: 180, category: 'Fashion', tenantId: '2', image: '🧥', rating: 4.8, featured: true },
-  { id: 'p5', name: 'Urban Knit Sneakers', price: 120, category: 'Fashion', tenantId: '2', image: '👟', rating: 4.6, featured: false },
-  { id: 'p6', name: 'Bespoke Tailored Blazer', price: 250, category: 'Fashion', tenantId: '2', image: '🧥', rating: 4.9, featured: true },
-  { id: 'p7', name: 'Eco-Friendly Bamboo Flask', price: 35, category: 'Lifestyle', tenantId: '3', image: '🥤', rating: 4.5, featured: false },
-  { id: 'p8', name: 'Handcrafted Ceramic Planter', price: 45, category: 'Lifestyle', tenantId: '3', image: '🏺', rating: 4.8, featured: true },
-  { id: 'p9', name: 'Organic Matcha Starter Set', price: 65, category: 'Lifestyle', tenantId: '3', image: '🍵', rating: 4.9, featured: true },
-  { id: 'p10', name: 'Premium Espresso Roast (1kg)', price: 28, category: 'Groceries', tenantId: '4', image: '☕', rating: 4.9, featured: true },
-  { id: 'p11', name: 'Artisanal Sourdough Loaf', price: 8, category: 'Groceries', tenantId: '4', image: '🍞', rating: 4.7, featured: false },
-  { id: 'p12', name: 'Organic Honeycomb (500g)', price: 18, category: 'Groceries', tenantId: '4', image: '🍯', rating: 4.9, featured: true }
-];
+interface Order {
+  id: string;
+  tenant_id: string;
+  order_number: string;
+  customer_id: string;
+  total_amount: number;
+  currency: string;
+  status: string;
+  created_at: string;
+}
 
 export default function MarketplacePage() {
   const [selectedTenantId, setSelectedTenantId] = useState<string>('all');
@@ -51,20 +42,122 @@ export default function MarketplacePage() {
   const [cartCount, setCartCount] = useState<number>(0);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
 
+  // Dynamic database-driven states
+  const [tenants, setTenants] = useState<Tenant[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [loadingInitial, setLoadingInitial] = useState<boolean>(true);
+  const [initialError, setInitialError] = useState<string | null>(null);
+
+  const [ordersLoading, setOrdersLoading] = useState<boolean>(false);
+  const [ordersError, setOrdersError] = useState<string | null>(null);
+  const [backendHealth, setBackendHealth] = useState<'healthy' | 'unhealthy' | 'checking'>('checking');
+
   const categories = ['all', 'Electronics', 'Fashion', 'Lifestyle', 'Groceries'];
 
   const filteredProducts = useMemo(() => {
-    return MOCK_PRODUCTS.filter(product => {
+    return products.filter(product => {
       const matchesTenant = selectedTenantId === 'all' || product.tenantId === selectedTenantId;
       const matchesCategory = selectedCategory === 'all' || product.category === selectedCategory;
       const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
                             product.category.toLowerCase().includes(searchQuery.toLowerCase());
       return matchesTenant && matchesCategory && matchesSearch;
     });
-  }, [selectedTenantId, selectedCategory, searchQuery]);
+  }, [products, selectedTenantId, selectedCategory, searchQuery]);
 
   const activeTenantInfo = useMemo(() => {
-    return MOCK_TENANTS.find(t => t.id === selectedTenantId);
+    return tenants.find(t => t.id === selectedTenantId);
+  }, [tenants, selectedTenantId]);
+
+  // Fetch health check once on mount
+  useEffect(() => {
+    const checkHealth = async () => {
+      try {
+        const response = await fetch(`${API_URL}/api/health`);
+        const data = await response.json();
+        if (data && data.status === 'healthy') {
+          setBackendHealth('healthy');
+        } else {
+          setBackendHealth('unhealthy');
+        }
+      } catch (err) {
+        setBackendHealth('unhealthy');
+      }
+    };
+    checkHealth();
+  }, []);
+
+  // Fetch active catalog directory (tenants and products)
+  useEffect(() => {
+    const fetchInitialData = async () => {
+      setLoadingInitial(true);
+      setInitialError(null);
+      try {
+        const [tenantsRes, productsRes] = await Promise.all([
+          fetch(`${API_URL}/api/tenants`),
+          fetch(`${API_URL}/api/products`)
+        ]);
+
+        if (!tenantsRes.ok || !productsRes.ok) {
+          throw new Error('Failed to retrieve catalog metadata');
+        }
+
+        const tenantsData = await tenantsRes.json();
+        const productsData = await productsRes.json();
+
+        setTenants(tenantsData.tenants || []);
+
+        const mapped = (productsData.products || []).map((p: any) => ({
+          id: p.id,
+          name: p.name,
+          price: Number(p.price),
+          category: p.category,
+          tenantId: p.tenant_id,
+          image: p.image || '📦',
+          rating: Number(p.rating),
+          featured: Boolean(p.featured)
+        }));
+        setProducts(mapped);
+      } catch (err: any) {
+        setInitialError(err.message || 'Failed to initialize catalog database');
+      } finally {
+        setLoadingInitial(false);
+      }
+    };
+
+    fetchInitialData();
+  }, []);
+
+  // Fetch live orders whenever active tenant changes
+  useEffect(() => {
+    if (selectedTenantId === 'all') {
+      setOrders([]);
+      setOrdersError(null);
+      return;
+    }
+
+    const fetchOrders = async () => {
+      setOrdersLoading(true);
+      setOrdersError(null);
+      try {
+        const response = await fetch(`${API_URL}/api/orders`, {
+          headers: {
+            'X-Tenant-ID': selectedTenantId,
+          },
+        });
+        if (!response.ok) {
+          throw new Error(`Failed to fetch orders (${response.status} ${response.statusText})`);
+        }
+        const data = await response.json();
+        setOrders(data.orders || []);
+      } catch (err: any) {
+        setOrdersError(err.message || 'Failed to connect to backend service');
+      } finally {
+        setOrdersLoading(false);
+      }
+    };
+
+    fetchOrders();
   }, [selectedTenantId]);
 
   return (
@@ -78,6 +171,18 @@ export default function MarketplacePage() {
             </span>
             <span className="hidden sm:inline-block px-2 py-0.5 text-xs font-medium bg-slate-800 border border-slate-700 text-slate-300 rounded-full">
               Multi-Tenant
+            </span>
+            <span className={`px-2 py-0.5 text-[10px] sm:text-xs font-medium border rounded-full flex items-center gap-1.5 ${
+              backendHealth === 'healthy' 
+                ? 'bg-emerald-950/40 border-emerald-500/50 text-emerald-400' 
+                : backendHealth === 'unhealthy' 
+                ? 'bg-rose-950/40 border-rose-500/50 text-rose-400' 
+                : 'bg-amber-950/40 border-amber-500/50 text-amber-400'
+            }`}>
+              <span className={`w-1.5 h-1.5 rounded-full ${
+                backendHealth === 'healthy' ? 'bg-emerald-400 animate-ping' : backendHealth === 'unhealthy' ? 'bg-rose-400' : 'bg-amber-400'
+              }`}></span>
+              API: {backendHealth === 'healthy' ? 'Connected' : backendHealth === 'unhealthy' ? 'Disconnected' : 'Checking...'}
             </span>
           </div>
 
@@ -174,7 +279,7 @@ export default function MarketplacePage() {
               <span className="text-2xl">🌍</span>
               <span className="font-semibold text-sm">All Shops</span>
             </button>
-            {MOCK_TENANTS.map((tenant) => (
+            {tenants.map((tenant) => (
               <button
                 key={tenant.id}
                 onClick={() => setSelectedTenantId(tenant.id)}
@@ -221,7 +326,7 @@ export default function MarketplacePage() {
         {filteredProducts.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
             {filteredProducts.map((product) => {
-              const tenant = MOCK_TENANTS.find(t => t.id === product.tenantId);
+              const tenant = tenants.find(t => t.id === product.tenantId);
               return (
                 <div
                   key={product.id}
@@ -272,6 +377,95 @@ export default function MarketplacePage() {
             </p>
           </div>
         )}
+
+        {/* Database Verification / Isolation Log Section */}
+        <section className="mt-12 bg-slate-900/30 border border-slate-800 rounded-3xl p-6 sm:p-8">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-slate-800 pb-4 mb-6">
+            <div>
+              <h2 className="text-lg font-bold text-white flex items-center gap-2">
+                <span>🔒</span> Database Isolation Logs (PostgreSQL RLS)
+              </h2>
+              <p className="text-xs text-slate-400 mt-1">
+                Verifies database tenant boundaries. Setting <code>app.current_tenant_id</code> restricts query scope automatically.
+              </p>
+            </div>
+            {selectedTenantId !== 'all' && (
+              <span className="text-xs font-mono bg-indigo-950 text-indigo-300 px-3 py-1 rounded-full border border-indigo-500/30">
+                Tenant Context: {selectedTenantId}
+              </span>
+            )}
+          </div>
+
+          {selectedTenantId === 'all' ? (
+            <div className="flex flex-col items-center justify-center py-10 text-center gap-2 text-slate-400 bg-slate-950/40 rounded-2xl border border-slate-900 border-dashed">
+              <span className="text-3xl">👥</span>
+              <p className="text-sm font-medium">Select a specific tenant above to query live orders from the database.</p>
+              <p className="text-xs text-slate-500">Only Apex Tech Labs and Luxe Attire contain database records in the seeded state.</p>
+            </div>
+          ) : ordersLoading ? (
+            <div className="flex items-center justify-center py-12 gap-3 text-slate-400">
+              <span className="animate-spin text-2xl">⏳</span>
+              <span className="text-sm">Querying isolated records...</span>
+            </div>
+          ) : ordersError ? (
+            <div className="bg-rose-950/40 border border-rose-500/30 text-rose-300 rounded-2xl p-6 flex flex-col gap-2">
+              <span className="font-bold text-sm">Connection/Authorization Failure</span>
+              <p className="text-xs">{ordersError}</p>
+              <p className="text-[10px] text-slate-500 mt-2">
+                Note: Verify that the backend stack is running locally (port 8080) or on Cloud Run and that CORS allows requests from this origin.
+              </p>
+            </div>
+          ) : orders.length > 0 ? (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs border-collapse">
+                <thead>
+                  <tr className="border-b border-slate-800 text-slate-400 font-semibold uppercase tracking-wider">
+                    <th className="pb-3 pl-4">Order ID</th>
+                    <th className="pb-3">Order Number</th>
+                    <th className="pb-3">Customer ID</th>
+                    <th className="pb-3">Total Amount</th>
+                    <th className="pb-3">Status</th>
+                    <th className="pb-3 pr-4">Created At</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-800/50 font-mono">
+                  {orders.map((order) => (
+                    <tr key={order.id} className="hover:bg-slate-800/30 transition-colors">
+                      <td className="py-4 pl-4 text-slate-500 truncate max-w-[120px]" title={order.id}>
+                        {order.id}
+                      </td>
+                      <td className="py-4 font-bold text-indigo-400">{order.order_number}</td>
+                      <td className="py-4 text-slate-500 truncate max-w-[120px]" title={order.customer_id}>
+                        {order.customer_id}
+                      </td>
+                      <td className="py-4 font-semibold text-white">
+                        {order.total_amount} {order.currency}
+                      </td>
+                      <td className="py-4">
+                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
+                          order.status === 'completed' 
+                            ? 'bg-emerald-950 text-emerald-400 border border-emerald-500/20' 
+                            : 'bg-amber-950 text-amber-400 border border-amber-500/20'
+                        }`}>
+                          {order.status}
+                        </span>
+                      </td>
+                      <td className="py-4 pr-4 text-slate-400">
+                        {new Date(order.created_at).toLocaleString()}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center py-10 text-center gap-2 text-slate-400 bg-slate-950/40 rounded-2xl border border-slate-900 border-dashed">
+              <span className="text-3xl">📭</span>
+              <p className="text-sm font-medium">No live orders found in the database context for this tenant.</p>
+              <p className="text-xs text-slate-500">Row-Level Security queries returned 0 results cleanly.</p>
+            </div>
+          )}
+        </section>
       </main>
 
       {/* Footer */}
@@ -293,3 +487,4 @@ export default function MarketplacePage() {
     </div>
   );
 }
+
