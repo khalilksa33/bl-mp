@@ -33,4 +33,43 @@ final class TenantRepository
 
         return $results;
     }
+
+    /**
+     * Persists a new Tenant (vendor) record.
+     */
+    public function save(Tenant $tenant): bool
+    {
+        $sql = 'INSERT INTO tenants (id, name, subdomain, status, business_type, owner_name, email, phone, settings) 
+                VALUES (:id, :name, :subdomain, :status, :business_type, :owner_name, :email, :phone, :settings)
+                ON CONFLICT (id) DO UPDATE SET 
+                    name = EXCLUDED.name,
+                    subdomain = EXCLUDED.subdomain,
+                    status = EXCLUDED.status,
+                    business_type = EXCLUDED.business_type,
+                    owner_name = EXCLUDED.owner_name,
+                    email = EXCLUDED.email,
+                    phone = EXCLUDED.phone,
+                    settings = EXCLUDED.settings';
+
+        $stmt = $this->pdo->prepare($sql);
+        
+        $settings = json_encode([
+            'logo' => $tenant->getLogo(),
+            'category' => $tenant->getCategory(),
+            'rating' => $tenant->getRating(),
+            'bannerGradient' => $tenant->getBannerGradient()
+        ], JSON_THROW_ON_ERROR);
+
+        return $stmt->execute([
+            'id' => $tenant->getId(),
+            'name' => $tenant->getName(),
+            'subdomain' => $tenant->getSubdomain(),
+            'status' => 'active',
+            'business_type' => $tenant->getBusinessType(),
+            'owner_name' => $tenant->getOwnerName(),
+            'email' => $tenant->getEmail(),
+            'phone' => $tenant->getPhone(),
+            'settings' => $settings
+        ]);
+    }
 }

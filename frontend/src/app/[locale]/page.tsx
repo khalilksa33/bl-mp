@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useMemo, useEffect } from 'react';
+import { useRouter, useParams } from 'next/navigation';
 
 // API configuration
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
@@ -37,6 +38,10 @@ interface Order {
 }
 
 export default function MarketplacePage() {
+  const router = useRouter();
+  const params = useParams();
+  const locale = params?.locale || 'en';
+
   const [selectedTenantId, setSelectedTenantId] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [cartCount, setCartCount] = useState<number>(0);
@@ -198,6 +203,26 @@ export default function MarketplacePage() {
           </div>
 
           <div className="flex items-center gap-4">
+            {/* Vendor Links */}
+            <button
+              onClick={() => router.push(`/${locale}/register`)}
+              className="hidden sm:inline-block px-3 py-1.5 text-xs font-semibold text-indigo-400 hover:text-indigo-300 bg-indigo-950/20 hover:bg-indigo-950/40 border border-indigo-900/60 rounded-full transition-all"
+            >
+              {locale === 'ar' ? 'سجل كبائع' : 'Become a Vendor'}
+            </button>
+            <button
+              onClick={() => router.push(`/${locale}/portal`)}
+              className="hidden sm:inline-block px-3 py-1.5 text-xs font-semibold text-slate-400 hover:text-white border border-slate-800 hover:border-slate-700 bg-slate-900/40 rounded-full transition-all"
+            >
+              {locale === 'ar' ? 'لوحة البائع' : 'Vendor Portal'}
+            </button>
+            <button
+              onClick={() => router.push(`/${locale}/admin`)}
+              className="hidden sm:inline-block px-3 py-1.5 text-xs font-semibold text-violet-400 hover:text-violet-355 border border-violet-950 hover:border-violet-900 bg-violet-950/10 rounded-full transition-all"
+            >
+              {locale === 'ar' ? 'لوحة المسؤول' : 'Super Admin'}
+            </button>
+
             {/* Cart Icon */}
             <div className="relative cursor-pointer p-2 rounded-full hover:bg-slate-900 transition-colors" onClick={() => setCartCount(0)}>
               <span className="text-xl">🛒</span>
@@ -249,13 +274,15 @@ export default function MarketplacePage() {
             ) : (
               <>
                 <span className="inline-block self-start px-3 py-1 text-xs font-semibold tracking-wider text-indigo-300 bg-indigo-900/40 border border-indigo-500/30 rounded-full">
-                  GLOBAL MULTI-TENANT MARKETPLACE
+                  {locale === 'ar' ? 'سوق الخدمات وقطع غيار السيارات الأول بالمملكة' : 'SAUDI ARABIA\'S PREMIER AUTOMOTIVE HUB'}
                 </span>
                 <h1 className="text-4xl sm:text-6xl font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-white via-slate-200 to-indigo-200">
-                  Your Hub for Regional Commerce
+                  {locale === 'ar' ? 'كل ما تحتاجه لسيارتك في مكان واحد' : 'Your Unified Saudi Auto Services Platform'}
                 </h1>
                 <p className="text-lg text-slate-300">
-                  Shop across multiple vetted local tenants with absolute trust, unified cart, and blazing fast global delivery.
+                  {locale === 'ar'
+                    ? 'اكتشف محلات التشليح، قطع الغيار الجديدة، خدمات السطحات الفورية، والورش المتنقلة، والميكانيكا في الرياض، جدة، الدمام، وكافة أنحاء المملكة العربية السعودية بضمان منصة نكسس.'
+                    : 'Discover local vetted shops for Tashleeh, new spare parts, flatbed towing (Satha), mobile workshops, digital alignment, and mechanics in Riyadh, Jeddah, Dammam, and across Saudi Arabia.'}
                 </p>
               </>
             )}
@@ -377,6 +404,55 @@ export default function MarketplacePage() {
             </p>
           </div>
         )}
+
+        {/* Saudi Arabia Regional Auto Directory SEO Section */}
+        <section className="mt-12 border-t border-slate-900 pt-12 flex flex-col gap-6">
+          <div>
+            <h2 className="text-2xl font-black text-white tracking-tight">
+              {locale === 'ar' ? 'سوق صيانة السيارات وقطع الغيار المعتمد في السعودية' : 'Vetted Auto Maintenance & Spare Parts in Saudi Arabia'}
+            </h2>
+            <p className="text-sm text-slate-405 mt-2">
+              {locale === 'ar'
+                ? 'نحن نربط قائدي السيارات بأفضل مقدمي الخدمات المحترفين في الرياض، جدة، مكة المكرمة، المدينة المنورة، الدمام، والخبر. تصفح الخدمات بكل أمان وسهولة.'
+                : 'Connecting drivers with premium, certified service providers in Riyadh, Jeddah, Dammam, Mecca, Medina, Khobar, and across KSA. Experience secure auto care.'}
+            </p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="p-6 bg-slate-900/40 border border-slate-800 rounded-2xl flex flex-col gap-2">
+              <span className="text-3xl">🚗</span>
+              <h3 className="text-base font-bold text-white">
+                {locale === 'ar' ? 'قطع غيار وتشليح (Tashleeh)' : 'Tashleeh & Used Spare Parts'}
+              </h3>
+              <p className="text-xs text-slate-400 leading-relaxed">
+                {locale === 'ar'
+                  ? 'ابحث عن قطع الغيار المستعملة والنادرة مباشرة من تشليح الحائر بالرياض، تشليح بريمان بجدة، وكافة مراكز التشليح المعتمدة في المملكة.'
+                  : 'Locate genuine used auto parts directly from Riyadh (Al-Hair), Jeddah (Briman), and Dammam tashleeh yards with verified availability.'}
+              </p>
+            </div>
+            <div className="p-6 bg-slate-900/40 border border-slate-800 rounded-2xl flex flex-col gap-2">
+              <span className="text-3xl">🛻</span>
+              <h3 className="text-base font-bold text-white">
+                {locale === 'ar' ? 'سطحات نقل هيدروليك وعادية' : 'Saudi Flatbed Towing (Satha)'}
+              </h3>
+              <p className="text-xs text-slate-400 leading-relaxed">
+                {locale === 'ar'
+                  ? 'نقل آمن للسيارات المصدومة أو المتعطلة داخل مدن السعودية أو بين المدن بلمسة زر واحدة وعلى مدار الساعة.'
+                  : 'Fast, secure towing service for broken or damaged vehicles within major Saudi cities or long-distance intercity transport 24/7.'}
+              </p>
+            </div>
+            <div className="p-6 bg-slate-900/40 border border-slate-800 rounded-2xl flex flex-col gap-2">
+              <span className="text-3xl">🔋</span>
+              <h3 className="text-base font-bold text-white">
+                {locale === 'ar' ? 'الورشة المتنقلة وصيانة الطرق' : 'KSA Mobile Auto Workshops'}
+              </h3>
+              <p className="text-xs text-slate-400 leading-relaxed">
+                {locale === 'ar'
+                  ? 'خدمات الميكانيكا والكهرباء المتنقلة عند المنزل، تغيير زيت السيارة، شحن وتغيير بطاريات السيارات، وبنشر متنقل سريع.'
+                  : 'Doorstep battery jumpstart, replacement, tire patching, oil changes, and comprehensive diagnostics by mobile mechanics near you.'}
+              </p>
+            </div>
+          </div>
+        </section>
 
         {/* Database Verification / Isolation Log Section */}
         <section className="mt-12 bg-slate-900/30 border border-slate-800 rounded-3xl p-6 sm:p-8">
