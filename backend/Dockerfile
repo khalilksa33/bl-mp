@@ -14,8 +14,8 @@ COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
 WORKDIR /var/www/html
 
-# Copy composer config and run install
-COPY composer.json ./
+# Copy composer config and lock file, then run install (pinned versions)
+COPY composer.json composer.lock ./
 RUN composer install --no-interaction --no-plugins --no-scripts --no-dev --prefer-dist
 
 # Copy project files

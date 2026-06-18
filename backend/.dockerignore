@@ -1,0 +1,9 @@
+# Exclude the vendor directory - composer install runs inside the container
+vendor/
+
+# Exclude test/dev files
+*.md
+.env
+.env.*
+scratch_test.php
+test_db.php

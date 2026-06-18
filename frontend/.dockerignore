@@ -1,0 +1,9 @@
+# Exclude heavy directories - installed/built inside container
+node_modules/
+.next/
+out/
+
+# Exclude local env files and dev artifacts
+.env
+.env.*
+*.md

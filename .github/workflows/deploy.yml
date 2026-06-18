@@ -28,19 +28,28 @@ jobs:
       - name: Set up Cloud SDK
         uses: google-github-actions/setup-gcloud@v2
 
+      # Ensure Artifact Registry / GCR repository exists
       - name: List and Create Repo
         run: |
           gcloud artifacts repositories list
           gcloud artifacts repositories create gcr.io --repository-format=docker --location=us --description="GCR" || true
+
       # Configure Docker for Artifact Registry/GCR
       - name: Configure Docker
         run: |
           gcloud auth configure-docker gcr.io --quiet
 
-      # Build and push Backend to GCR
-      - name: Build and Push Backend
+      # ── Backend ──────────────────────────────────────────────
+      - name: Build Backend Docker Image
         run: |
-          docker build -t gcr.io/${{ secrets.GCP_PROJECT_ID }}/marketplace-backend:latest ./backend
+          echo "Building backend image..."
+          docker build --progress=plain \
+            -t gcr.io/${{ secrets.GCP_PROJECT_ID }}/marketplace-backend:latest \
+            ./backend
+
+      - name: Push Backend Docker Image
+        run: |
+          echo "Pushing backend image to GCR..."
           docker push gcr.io/${{ secrets.GCP_PROJECT_ID }}/marketplace-backend:latest
 
       # Deploy Backend to Cloud Run
@@ -53,12 +62,18 @@ jobs:
           region: us-central1
           flags: --allow-unauthenticated
 
-      # Build and push Frontend to GCR (injecting deployed Backend URL)
-      - name: Build and Push Frontend
+      # ── Frontend ─────────────────────────────────────────────
+      - name: Build Frontend Docker Image
         run: |
-          docker build \
+          echo "Building frontend image with backend URL: ${{ steps.deploy-backend.outputs.url }}"
+          docker build --progress=plain \
             --build-arg NEXT_PUBLIC_API_URL=${{ steps.deploy-backend.outputs.url }} \
-            -t gcr.io/${{ secrets.GCP_PROJECT_ID }}/marketplace-frontend:latest ./frontend
+            -t gcr.io/${{ secrets.GCP_PROJECT_ID }}/marketplace-frontend:latest \
+            ./frontend
+
+      - name: Push Frontend Docker Image
+        run: |
+          echo "Pushing frontend image to GCR..."
           docker push gcr.io/${{ secrets.GCP_PROJECT_ID }}/marketplace-frontend:latest
 
       # Deploy Frontend to Cloud Run
