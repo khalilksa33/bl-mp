@@ -28,12 +28,17 @@ function getDirection(locale: string): 'rtl' | 'ltr' {
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
   const resolvedParams = await params;
   const dir = getDirection(resolvedParams.locale);
+  const isAr = resolvedParams.locale === 'ar';
   return {
     title: {
-      template: '%s | Global Multi-Tenant Marketplace',
-      default: 'Premium Enterprise Multi-Tenant Marketplace',
+      template: isAr ? '%s | نكسس السعودية' : '%s | Nexus KSA Auto Marketplace',
+      default: isAr 
+        ? 'منصة نكسس السعودية - سوق قطع غيار السيارات والخدمات المتكاملة' 
+        : 'Nexus KSA - Saudi Arabia\'s #1 Automotive Services & Parts Hub',
     },
-    description: 'High-frequency, localized, multi-tenant marketplace platform for regional commerce.',
+    description: isAr 
+      ? 'نكسس هي المنصة السعودية الأولى لخدمات السيارات وقطع الغيار. ابحث عن تشليح، قطع غيار جديدة، سطحات، ورش متنقلة، ميزان إلكتروني، وخدمات صيانة في الرياض، جدة، الدمام وكافة أنحاء المملكة.'
+      : 'Nexus is Saudi Arabia\'s premier automotive multi-tenant platform. Find Tashleeh used parts, new auto parts, flatbed towing (Satha), mobile workshops, digital alignment, and mechanics across Riyadh, Jeddah, Dammam, and all of Saudi Arabia.',
     other: {
       dir: dir,
     },

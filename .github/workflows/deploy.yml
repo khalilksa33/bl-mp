@@ -29,9 +29,9 @@ jobs:
         uses: google-github-actions/setup-gcloud@v2
 
       - name: List and Create Repo
-          run: |
-                    gcloud artifacts repositories list
-                gcloud artifacts repositories create gcr.io --repository-format=docker --location=us --description="GCR" || true
+        run: |
+          gcloud artifacts repositories list
+          gcloud artifacts repositories create gcr.io --repository-format=docker --location=us --description="GCR" || true
       # Configure Docker for Artifact Registry/GCR
       - name: Configure Docker
         run: |

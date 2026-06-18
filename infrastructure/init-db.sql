@@ -7,10 +7,20 @@ CREATE TABLE IF NOT EXISTS tenants (
     name VARCHAR(255) NOT NULL,
     subdomain VARCHAR(100) UNIQUE NOT NULL,
     status VARCHAR(50) NOT NULL DEFAULT 'active',
+    business_type VARCHAR(100),
+    owner_name VARCHAR(255),
+    email VARCHAR(255),
+    phone VARCHAR(50),
     settings JSONB NOT NULL DEFAULT '{}'::jsonb,
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
+
+-- Ensure columns exist if the table was already created
+ALTER TABLE tenants ADD COLUMN IF NOT EXISTS business_type VARCHAR(100);
+ALTER TABLE tenants ADD COLUMN IF NOT EXISTS owner_name VARCHAR(255);
+ALTER TABLE tenants ADD COLUMN IF NOT EXISTS email VARCHAR(255);
+ALTER TABLE tenants ADD COLUMN IF NOT EXISTS phone VARCHAR(50);
 
 CREATE INDEX IF NOT EXISTS idx_tenants_subdomain ON tenants(subdomain);
 
@@ -56,14 +66,28 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- Drop policies if they exist to avoid errors on container restart
 DROP POLICY IF EXISTS tenant_isolation_policy ON tenants;
+DROP POLICY IF EXISTS tenant_write_policy ON tenants;
+DROP POLICY IF EXISTS tenant_insert_policy ON tenants;
+DROP POLICY IF EXISTS tenant_update_policy ON tenants;
+DROP POLICY IF EXISTS tenant_delete_policy ON tenants;
+
 CREATE POLICY tenant_read_policy ON tenants
     FOR SELECT
     USING (true);
 
-CREATE POLICY tenant_write_policy ON tenants
-    FOR ALL
+CREATE POLICY tenant_insert_policy ON tenants
+    FOR INSERT
+    WITH CHECK (true);
+
+CREATE POLICY tenant_update_policy ON tenants
+    FOR UPDATE
     USING (id = get_current_tenant_id())
     WITH CHECK (id = get_current_tenant_id());
+
+CREATE POLICY tenant_delete_policy ON tenants
+    FOR DELETE
+    USING (id = get_current_tenant_id());
+
 
 DROP POLICY IF EXISTS order_isolation_policy ON orders;
 CREATE POLICY order_isolation_policy ON orders
@@ -97,10 +121,23 @@ CREATE POLICY product_read_policy ON products
     USING (true);
 
 DROP POLICY IF EXISTS product_write_policy ON products;
-CREATE POLICY product_write_policy ON products
-    FOR ALL
+DROP POLICY IF EXISTS product_insert_policy ON products;
+DROP POLICY IF EXISTS product_update_policy ON products;
+DROP POLICY IF EXISTS product_delete_policy ON products;
+
+CREATE POLICY product_insert_policy ON products
+    FOR INSERT
+    WITH CHECK (get_current_tenant_id() IS NULL OR tenant_id = get_current_tenant_id());
+
+CREATE POLICY product_update_policy ON products
+    FOR UPDATE
     USING (tenant_id = get_current_tenant_id())
     WITH CHECK (tenant_id = get_current_tenant_id());
+
+CREATE POLICY product_delete_policy ON products
+    FOR DELETE
+    USING (tenant_id = get_current_tenant_id());
+
 
 -- 6. Trigger for automated updated_at timestamps
 CREATE OR REPLACE FUNCTION update_timestamp_column()
@@ -130,15 +167,25 @@ CREATE TRIGGER trigger_update_products_timestamp
     EXECUTE FUNCTION update_timestamp_column();
 
 -- 7. Insert Seed Data
--- Insert all 4 tenants so we can test them
-INSERT INTO tenants (id, name, subdomain, status, settings) VALUES
-('11111111-1111-1111-1111-111111111111', 'Apex Tech Labs', 'apex', 'active', '{"logo": "⚡", "category": "Electronics", "bannerGradient": "from-blue-600 to-indigo-900", "rating": 4.9}'::jsonb),
-('22222222-2222-2222-2222-222222222222', 'Luxe Attire', 'luxe', 'active', '{"logo": "👔", "category": "Fashion", "bannerGradient": "from-purple-600 to-pink-900", "rating": 4.8}'::jsonb),
-('33333333-3333-3333-3333-333333333333', 'Eco Living Co.', 'eco', 'active', '{"logo": "🌱", "category": "Lifestyle", "bannerGradient": "from-emerald-600 to-teal-900", "rating": 4.7}'::jsonb),
-('44444444-4444-4444-4444-444444444444', 'Horizon Foods', 'horizon', 'active', '{"logo": "🍎", "category": "Groceries", "bannerGradient": "from-amber-500 to-orange-850", "rating": 4.9}'::jsonb)
+-- Insert tenants including the 6 new business types
+INSERT INTO tenants (id, name, subdomain, status, business_type, owner_name, email, phone, settings) VALUES
+('11111111-1111-1111-1111-111111111111', 'Apex Tech Labs', 'apex', 'active', 'electronics', 'John Doe', 'john@apex.com', '+1 555 123 4567', '{"logo": "⚡", "category": "Electronics", "bannerGradient": "from-blue-600 to-indigo-900", "rating": 4.9}'::jsonb),
+('22222222-2222-2222-2222-222222222222', 'Luxe Attire', 'luxe', 'active', 'fashion', 'Jane Smith', 'jane@luxe.com', '+1 555 987 6543', '{"logo": "👔", "category": "Fashion", "bannerGradient": "from-purple-600 to-pink-900", "rating": 4.8}'::jsonb),
+('33333333-3333-3333-3333-333333333333', 'Eco Living Co.', 'eco', 'active', 'lifestyle', 'Bob Green', 'bob@eco.com', '+1 555 333 4444', '{"logo": "🌱", "category": "Lifestyle", "bannerGradient": "from-emerald-600 to-teal-900", "rating": 4.7}'::jsonb),
+('44444444-4444-4444-4444-444444444444', 'Horizon Foods', 'horizon', 'active', 'groceries', 'Alice Baker', 'alice@horizon.com', '+1 555 888 9999', '{"logo": "🍎", "category": "Groceries", "bannerGradient": "from-amber-500 to-orange-850", "rating": 4.9}'::jsonb),
+('55555555-5555-5555-5555-555555555555', 'Riyadh Parts Hub', 'riyadh-parts', 'active', 'new_auto_spare_parts', 'Khalid Al-Ghamdi', 'khalid@riyadhparts.com', '+966 50 123 1111', '{"logo": "🔌", "category": "Parts", "bannerGradient": "from-blue-600 to-indigo-900", "rating": 4.8}'::jsonb),
+('66666666-6666-6666-6666-666666666666', 'Al-Tashleeh Al-Malaki', 'tashleeh-malaki', 'active', 'used_auto_spare_parts', 'Fahad Al-Qahtani', 'info@tashleehmalaki.com', '+966 50 123 2222', '{"logo": "🚗", "category": "Used Parts", "bannerGradient": "from-rose-600 to-red-950", "rating": 4.9}'::jsonb),
+('77777777-7777-7777-7777-777777777777', 'Sathat Al-Riyadh Express', 'sathat-express', 'active', 'tow_company', 'Mohammed Al-Otaibi', 'ops@sathatexpress.com', '+966 50 123 3333', '{"logo": "🛻", "category": "Towing", "bannerGradient": "from-amber-500 to-orange-850", "rating": 4.7}'::jsonb),
+('88888888-8888-8888-8888-888888888888', 'Mobile Auto Doctor', 'auto-doctor', 'active', 'mobile_workshop', 'Yousef Al-Shammari', 'support@autodoctor.com', '+966 50 123 4444', '{"logo": "🔋", "category": "Mobile Service", "bannerGradient": "from-emerald-600 to-teal-900", "rating": 4.9}'::jsonb),
+('99999999-9999-9999-9999-999999999999', 'Precision Alignment Center', 'precision-alignment', 'active', 'digital_alignment', 'Sami Al-Harbi', 'contact@precision.com', '+966 50 123 5555', '{"logo": "📐", "category": "Alignment", "bannerGradient": "from-purple-600 to-pink-900", "rating": 4.6}'::jsonb),
+('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'Grand Mechanical Workshop', 'grand-mechanic', 'active', 'mechanics_workshop', 'Ali Al-Mutairi', 'admin@grandmechanic.com', '+966 50 123 6666', '{"logo": "🔧", "category": "Mechanic", "bannerGradient": "from-indigo-650 to-indigo-900", "rating": 4.8}'::jsonb)
 ON CONFLICT (id) DO UPDATE SET 
     name = EXCLUDED.name,
     subdomain = EXCLUDED.subdomain,
+    business_type = EXCLUDED.business_type,
+    owner_name = EXCLUDED.owner_name,
+    email = EXCLUDED.email,
+    phone = EXCLUDED.phone,
     settings = EXCLUDED.settings;
 
 -- Insert orders associated with tenants
