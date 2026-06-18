@@ -12,7 +12,7 @@ permissions:
 
 jobs:
   deploy-to-gcp:
-    name: Build, Push, and Deploy to GCP Cloud Run
+    name: Deploy to GCP Cloud Run (via Cloud Build)
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
@@ -28,59 +28,62 @@ jobs:
       - name: Set up Cloud SDK
         uses: google-github-actions/setup-gcloud@v2
 
-      # Ensure Artifact Registry / GCR repository exists
-      - name: List and Create Repo
+      # Enable required APIs (idempotent - safe to run every time)
+      - name: Enable Required GCP APIs
         run: |
-          gcloud artifacts repositories list
-          gcloud artifacts repositories create gcr.io --repository-format=docker --location=us --description="GCR" || true
+          echo "Enabling Cloud Run, Cloud Build and Artifact Registry APIs..."
+          gcloud services enable \
+            run.googleapis.com \
+            cloudbuild.googleapis.com \
+            artifactregistry.googleapis.com \
+            --project=${{ secrets.GCP_PROJECT_ID }}
 
-      # Configure Docker for Artifact Registry/GCR
-      - name: Configure Docker
-        run: |
-          gcloud auth configure-docker gcr.io --quiet
-
-      # ── Backend ──────────────────────────────────────────────
-      - name: Build Backend Docker Image
-        run: |
-          echo "Building backend image..."
-          docker build --progress=plain \
-            -t gcr.io/${{ secrets.GCP_PROJECT_ID }}/marketplace-backend:latest \
-            ./backend
-
-      - name: Push Backend Docker Image
-        run: |
-          echo "Pushing backend image to GCR..."
-          docker push gcr.io/${{ secrets.GCP_PROJECT_ID }}/marketplace-backend:latest
-
-      # Deploy Backend to Cloud Run
+      # ── Backend: deploy directly from source via Cloud Build ──
+      # No docker build/push needed - Cloud Build handles it with its own SA
       - name: Deploy Backend to Cloud Run
         id: deploy-backend
-        uses: google-github-actions/deploy-cloudrun@v2
-        with:
-          service: marketplace-backend
-          image: gcr.io/${{ secrets.GCP_PROJECT_ID }}/marketplace-backend:latest
-          region: us-central1
-          flags: --allow-unauthenticated
-
-      # ── Frontend ─────────────────────────────────────────────
-      - name: Build Frontend Docker Image
         run: |
-          echo "Building frontend image with backend URL: ${{ steps.deploy-backend.outputs.url }}"
-          docker build --progress=plain \
-            --build-arg NEXT_PUBLIC_API_URL=${{ steps.deploy-backend.outputs.url }} \
-            -t gcr.io/${{ secrets.GCP_PROJECT_ID }}/marketplace-frontend:latest \
-            ./frontend
+          echo "Deploying backend from source using Cloud Build..."
+          gcloud run deploy marketplace-backend \
+            --source ./backend \
+            --region us-central1 \
+            --platform managed \
+            --allow-unauthenticated \
+            --port 8080 \
+            --project=${{ secrets.GCP_PROJECT_ID }}
 
-      - name: Push Frontend Docker Image
+      # Get the backend URL for the frontend build
+      - name: Get Backend URL
+        id: get-backend-url
         run: |
-          echo "Pushing frontend image to GCR..."
-          docker push gcr.io/${{ secrets.GCP_PROJECT_ID }}/marketplace-frontend:latest
+          BACKEND_URL=$(gcloud run services describe marketplace-backend \
+            --region us-central1 \
+            --project=${{ secrets.GCP_PROJECT_ID }} \
+            --format="value(status.url)")
+          echo "backend_url=$BACKEND_URL" >> $GITHUB_OUTPUT
+          echo "Backend deployed at: $BACKEND_URL"
 
-      # Deploy Frontend to Cloud Run
+      # ── Frontend: inject backend URL then deploy from source ──
       - name: Deploy Frontend to Cloud Run
-        uses: google-github-actions/deploy-cloudrun@v2
-        with:
-          service: marketplace-frontend
-          image: gcr.io/${{ secrets.GCP_PROJECT_ID }}/marketplace-frontend:latest
-          region: us-central1
-          flags: --allow-unauthenticated
+        run: |
+          echo "Deploying frontend from source using Cloud Build..."
+          echo "Backend URL: ${{ steps.get-backend-url.outputs.backend_url }}"
+          gcloud run deploy marketplace-frontend \
+            --source ./frontend \
+            --region us-central1 \
+            --platform managed \
+            --allow-unauthenticated \
+            --port 3000 \
+            --set-env-vars="NEXT_PUBLIC_API_URL=${{ steps.get-backend-url.outputs.backend_url }}" \
+            --project=${{ secrets.GCP_PROJECT_ID }}
+
+      # Print deployed URLs
+      - name: Print Deployed Service URLs
+        run: |
+          echo "=============================="
+          echo "Deployment complete!"
+          echo "=============================="
+          gcloud run services list \
+            --region us-central1 \
+            --project=${{ secrets.GCP_PROJECT_ID }} \
+            --format="table(SERVICE,URL,LAST_DEPLOYED_BY,LAST_DEPLOYED_AT)"
