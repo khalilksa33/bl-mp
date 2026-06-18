@@ -8,20 +8,17 @@ WORKDIR /app
 
 # Copy ALL dependency files (lock file ensures reproducible installs)
 COPY package.json package-lock.json ./
-RUN npm ci --omit=dev
+RUN npm ci
 
 # Copy ALL Next.js config and source files
 COPY next.config.js tsconfig.json postcss.config.mjs ./
 COPY src ./src
 
-# Copy public assets if they exist (Next.js static files)
-COPY public ./public 2>/dev/null || true
-
 # Declare build-time environment variables
 ARG NEXT_PUBLIC_API_URL
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 
-# Build Next.js app (standalone output for Cloud Run)
+# Build Next.js app
 RUN npm run build
 
 # 3. Production runner
