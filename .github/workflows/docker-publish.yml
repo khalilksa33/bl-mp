@@ -25,7 +25,7 @@ jobs:
       # ---------- Backend image ----------
       - name: Build backend image
         run: |
-          docker build -f backend/Dockerfile -t ${{ secrets.DOCKERHUB_USERNAME }}/bl-mp:latest .
+          docker build -f backend/Dockerfile -t ${{ secrets.DOCKERHUB_USERNAME }}/bl-mp:latest backend/
       - name: Push backend image
         run: |
           docker push ${{ secrets.DOCKERHUB_USERNAME }}/bl-mp:latest
