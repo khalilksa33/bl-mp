@@ -20,7 +20,7 @@ RUN composer install --no-interaction --no-plugins --no-scripts --no-dev --prefe
 
 # Copy project files
 COPY src/ ./src/
-COPY backend/public/ ./public/
+COPY public/ ./public/
 
 # Optimize autoloader
 RUN composer dump-autoload --optimize --no-dev
