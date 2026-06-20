@@ -25,20 +25,20 @@ jobs:
       # ---------- Backend image ----------
       - name: Build backend image
         run: |
-          docker build -f backend/Dockerfile -t ${{ secrets.DOCKERHUB_USERNAME }}/bl-mp:${{ github.sha }} .
+          docker build -f backend/Dockerfile -t ${{ secrets.DOCKERHUB_USERNAME }}/bl-mp:latest .
       - name: Push backend image
         run: |
-          docker push ${{ secrets.DOCKERHUB_USERNAME }}/bl-mp:${{ github.sha }}
+          docker push ${{ secrets.DOCKERHUB_USERNAME }}/bl-mp:latest
 
       # ---------- Frontend image ----------
       - name: Build frontend image
         run: |
-          docker build -f frontend/Dockerfile -t ${{ secrets.DOCKERHUB_USERNAME }}/bl-mp-frontend:${{ github.sha }} .
+          docker build -f frontend/Dockerfile -t ${{ secrets.DOCKERHUB_USERNAME }}/bl-mp-frontend:latest .
       - name: Push frontend image
         run: |
-          docker push ${{ secrets.DOCKERHUB_USERNAME }}/bl-mp-frontend:${{ github.sha }}
+          docker push ${{ secrets.DOCKERHUB_USERNAME }}/bl-mp-frontend:latest
 
       # (Optional) Verify by pulling back the images
       - name: Verify push
         run: |
-          docker pull ${{ secrets.DOCKERHUB_USERNAME }}/bl-mp:${{ github.sha }}
+          docker pull ${{ secrets.DOCKERHUB_USERNAME }}/bl-mp:latest
