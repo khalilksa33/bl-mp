@@ -1,0 +1,23 @@
+# .dockerignore
+# Node & npm
+node_modules/
+npm-debug.log*
+# PHP vendor
+backend/vendor/
+# Build artifacts
+frontend/.next/
+frontend/out/
+frontend/.vercel/
+# Logs & caches
+*.log
+*.cache
+# Environment files
+.env
+.env.*
+# IDE files
+.idea/
+.vscode/
+# Git
+.git/
+# Misc
+*.DS_Store

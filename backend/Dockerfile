@@ -1,5 +1,8 @@
 # backend/Dockerfile
 FROM php:8.3-alpine
+# Add a non-root user for security
+RUN addgroup -g 1000 app && adduser -D -G app -u 1000 app
+USER app
 
 # Install system dependencies and PostgreSQL PHP extension
 RUN apk add --no-cache \
