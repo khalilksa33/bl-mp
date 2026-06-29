@@ -2,19 +2,7 @@
 version: '3.8'
 
 services:
-  backend:
-    image: khalilksa33/bl-mp:v1.0.0
-    restart: always
-    environment:
-      - APP_ENV=prod
-      - DB_HOST=postgres-prod.internal
-      - DB_PORT=5432
-      - DB_NAME=marketplace
-      - DB_USER=postgres
-      - DB_PASSWORD=secretpassword
-      - REDIS_URL=redis://redis-cluster.internal:6379/0
-    expose:
-      - "8080"
+
   cloudflared:
     image: cloudflare/cloudflared:latest
     restart: always
@@ -22,5 +10,5 @@ services:
     environment:
       - CLOUDFLARE_TUNNEL_TOKEN=${CLOUDFLARE_TUNNEL_TOKEN}
     depends_on:
-      - backend
+      - frontend
 

@@ -1,0 +1,41 @@
+name: CI/CD k3s Auto-Deployment
+
+on:
+  push:
+    branches:
+      - main
+      - dev
+      - development
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and push frontend image
+        run: |
+          docker build -f frontend/Dockerfile -t ${{ secrets.DOCKERHUB_USERNAME }}/bl-mp-frontend:latest ./frontend
+          docker push ${{ secrets.DOCKERHUB_USERNAME }}/bl-mp-frontend:latest
+
+      - name: Deploy to k3s cluster
+        uses: tale/kubectl-action@v1
+        with:
+          base64-kube-config: ${{ secrets.KUBE_CONFIG }}
+          kubectl-version: v1.28.0
+
+      - name: Apply manifests and rollout
+        run: |
+          kubectl apply -f infrastructure/k8s/
+          kubectl rollout restart deployment marketplace-frontend-deployment -n production

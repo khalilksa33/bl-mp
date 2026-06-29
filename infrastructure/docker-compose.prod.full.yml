@@ -1,19 +1,6 @@
 version: '3.8'
 
 services:
-  backend:
-    image: "${DOCKERHUB_USERNAME}/bl-mp:${TAG}"
-    restart: always
-    environment:
-      - APP_ENV=prod
-      - DB_HOST=postgres-prod.internal
-      - DB_PORT=5432
-      - DB_NAME=marketplace
-      - DB_USER=postgres
-      - DB_PASSWORD=secretpassword
-      - REDIS_URL=redis://redis-cluster.internal:6379/0
-    expose:
-      - "8080"
 
   frontend:
     image: "${DOCKERHUB_USERNAME}/bl-mp-frontend:latest"
@@ -22,8 +9,7 @@ services:
       - NODE_ENV=production
     ports:
       - "80:80"
-    depends_on:
-      - backend
+
 
   cloudflared:
     image: cloudflare/cloudflared:latest
@@ -32,4 +18,4 @@ services:
     environment:
       - CLOUDFLARE_TUNNEL_TOKEN=${CLOUDFLARE_TUNNEL_TOKEN}
     depends_on:
-      - backend
+      - frontend
