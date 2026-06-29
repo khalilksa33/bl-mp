@@ -4,6 +4,8 @@ import { orders } from '@/lib/schema';
 import { redis } from '@/lib/redis';
 import { eq, and } from 'drizzle-orm';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const tenantId = searchParams.get('tenantId');
