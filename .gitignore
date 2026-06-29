@@ -1,6 +1,7 @@
 # Dependencies
 node_modules/
-/backend/vendor/
+frontend/node_modules/
+backend/vendor/
 
 # Next.js Build Outputs
 .next/
@@ -26,7 +27,6 @@ secrets/
 # IDEs
 .idea/
 .vscode/
-# IDEs
 *.suo
 *.ntvs*
 *.njsproj
@@ -37,5 +37,5 @@ secrets/
 .agents/
 .firebase/
 
-
 ASPM-ERS/*.json
+.DS_Store

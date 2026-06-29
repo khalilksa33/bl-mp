@@ -1,0 +1,44 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+  namespace: default
+  labels:
+    app: backend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: backend
+  template:
+    metadata:
+      labels:
+        app: backend
+    spec:
+      containers:
+        - name: backend
+          image: ghcr.io/khalilksa33/marketplace-backend:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8080
+          env:
+            - name: APP_ENV
+              value: "prod"
+            - name: DB_HOST
+              value: "postgres-prod.internal"
+            - name: DB_PORT
+              value: "5432"
+            - name: DB_NAME
+              value: "marketplace"
+            - name: DB_USER
+              value: "postgres"
+            # In a real setup, DB_PASSWORD should be a k8s Secret, keeping as env for now or simulating file
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: db-credentials
+                  key: password
+            - name: REDIS_URL
+              value: "redis://redis-cluster.internal:6379/0"
+      imagePullSecrets:
+        - name: ghcr-login-secret

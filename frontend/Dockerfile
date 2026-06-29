@@ -10,8 +10,8 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci
 
-# Copy ALL Next.js config and source files
-COPY next.config.js tsconfig.json postcss.config.mjs ./
+# Copy application files
+COPY next.config.js tsconfig.json postcss.config.mjs postcss.config.js tailwind.config.js ./
 COPY src ./src
 
 # Declare build-time environment variables
